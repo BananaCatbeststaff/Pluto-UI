@@ -3,6 +3,33 @@ local GITHUB_REPO = "https://raw.githubusercontent.com/BananaCatbeststaff/Pluto-
 -- Cache for loaded modules to avoid re-downloading
 local moduleCache = {}
 
+local function resolvePath(currentPath, relativePath)
+	-- Remove the filename from current path to get directory
+	local dir = currentPath:match("(.*/)")
+	if not dir then
+		dir = ""
+	end
+	
+	-- Handle ../ (go up one directory)
+	while relativePath:match("^%.%./") do
+		relativePath = relativePath:sub(4) -- Remove ../
+		dir = dir:match("(.*/)[^/]+/$") or "" -- Go up one directory
+	end
+	
+	-- Handle ./ (current directory)
+	relativePath = relativePath:gsub("^%./", "")
+	
+	-- Combine paths
+	local fullPath = dir .. relativePath
+	
+	-- Add .lua extension if not present
+	if not fullPath:match("%.lua$") then
+		fullPath = fullPath .. ".lua"
+	end
+	
+	return fullPath
+end
+
 local function loadModule(path)
 	-- Check cache first
 	if moduleCache[path] then
@@ -11,24 +38,18 @@ local function loadModule(path)
 	
 	local success, result = pcall(function()
 		local code = game:HttpGet(GITHUB_REPO .. path)
-		-- Replace require calls with loadstring calls in the downloaded code
-		code = code:gsub('require%("%.%./([^"]+)"%)', function(modulePath)
-			return 'loadstring(game:HttpGet("' .. GITHUB_REPO .. modulePath .. '.lua"))()'
-		end)
-		code = code:gsub('require%("%./([^"]+)"%)', function(modulePath)
-			local dir = path:match("(.*/)")
-			if dir then
-				return 'loadstring(game:HttpGet("' .. GITHUB_REPO .. dir .. modulePath .. '.lua"))()'
-			else
-				return 'loadstring(game:HttpGet("' .. GITHUB_REPO .. modulePath .. '.lua"))()'
-			end
+		
+		-- Replace all require calls with proper loadModule calls
+		code = code:gsub('require%("([^"]+)"%)', function(modulePath)
+			local resolvedPath = resolvePath(path, modulePath)
+			return 'getgenv().loadModule("' .. resolvedPath .. '")'
 		end)
 		
 		return loadstring(code)()
 	end)
 	
 	if not success then
-		warn("Failed to load module: " .. path .. " - " .. tostring(result))
+		warn("Failed to load module: " .. path .. " - Error: " .. tostring(result))
 		return nil
 	end
 	
