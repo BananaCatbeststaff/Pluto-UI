@@ -1,15 +1,49 @@
 local GITHUB_REPO = "https://raw.githubusercontent.com/BananaCatbeststaff/Pluto-UI/main/"
 
+-- Cache for loaded modules to avoid re-downloading
+local moduleCache = {}
+
 local function loadModule(path)
+	-- Check cache first
+	if moduleCache[path] then
+		return moduleCache[path]
+	end
+	
 	local success, result = pcall(function()
-		return loadstring(game:HttpGet(GITHUB_REPO .. path))()
+		local code = game:HttpGet(GITHUB_REPO .. path)
+		-- Replace require calls with loadModule calls in the downloaded code
+		code = code:gsub('require%("%.%./([^"]+)"%)', function(modulePath)
+			return 'getfenv().loadModule("' .. modulePath .. '.lua")'
+		end)
+		code = code:gsub('require%("%./([^"]+)"%)', function(modulePath)
+			local dir = path:match("(.*/)")
+			if dir then
+				return 'getfenv().loadModule("' .. dir .. modulePath .. '.lua")'
+			else
+				return 'getfenv().loadModule("' .. modulePath .. '.lua")'
+			end
+		end)
+		
+		local func = loadstring(code)
+		local env = getfenv(func)
+		env.loadModule = loadModule
+		setfenv(func, env)
+		
+		return func()
 	end)
+	
 	if not success then
 		warn("Failed to load module: " .. path .. " - " .. tostring(result))
 		return nil
 	end
+	
+	-- Cache the result
+	moduleCache[path] = result
 	return result
 end
+
+-- Make loadModule available globally for nested requires
+getgenv().loadModule = loadModule
 
 local WindUI = {
 	Window = nil,
