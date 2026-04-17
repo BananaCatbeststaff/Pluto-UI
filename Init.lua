@@ -11,25 +11,20 @@ local function loadModule(path)
 	
 	local success, result = pcall(function()
 		local code = game:HttpGet(GITHUB_REPO .. path)
-		-- Replace require calls with loadModule calls in the downloaded code
+		-- Replace require calls with loadstring calls in the downloaded code
 		code = code:gsub('require%("%.%./([^"]+)"%)', function(modulePath)
-			return 'getfenv().loadModule("' .. modulePath .. '.lua")'
+			return 'loadstring(game:HttpGet("' .. GITHUB_REPO .. modulePath .. '.lua"))()'
 		end)
 		code = code:gsub('require%("%./([^"]+)"%)', function(modulePath)
 			local dir = path:match("(.*/)")
 			if dir then
-				return 'getfenv().loadModule("' .. dir .. modulePath .. '.lua")'
+				return 'loadstring(game:HttpGet("' .. GITHUB_REPO .. dir .. modulePath .. '.lua"))()'
 			else
-				return 'getfenv().loadModule("' .. modulePath .. '.lua")'
+				return 'loadstring(game:HttpGet("' .. GITHUB_REPO .. modulePath .. '.lua"))()'
 			end
 		end)
 		
-		local func = loadstring(code)
-		local env = getfenv(func)
-		env.loadModule = loadModule
-		setfenv(func, env)
-		
-		return func()
+		return loadstring(code)()
 	end)
 	
 	if not success then
