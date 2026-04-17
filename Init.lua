@@ -1,9 +1,22 @@
+local GITHUB_REPO = "https://raw.githubusercontent.com/BananaCatbeststaff/Pluto-UI/main/"
+
+local function loadModule(path)
+	local success, result = pcall(function()
+		return loadstring(game:HttpGet(GITHUB_REPO .. path))()
+	end)
+	if not success then
+		warn("Failed to load module: " .. path .. " - " .. tostring(result))
+		return nil
+	end
+	return result
+end
+
 local WindUI = {
 	Window = nil,
 	Theme = nil,
-	Creator = require("./modules/Creator"),
-	LocalizationModule = require("./modules/Localization"),
-	NotificationModule = require("./components/Notification"),
+	Creator = loadModule("modules/Creator.lua"),
+	LocalizationModule = loadModule("modules/Localization.lua"),
+	NotificationModule = loadModule("components/Notification.lua"),
 	Themes = nil,
 	Transparent = false,
 
@@ -14,7 +27,7 @@ local WindUI = {
 	ConfigManager = nil,
 	Version = "0.0.0",
 
-	Services = require("./utils/services/Init"),
+	Services = loadModule("utils/services/Init.lua"),
 
 	OnThemeChangeFunction = nil,
 
@@ -34,12 +47,10 @@ local RunService = cloneref(game:GetService("RunService"))
 
 local LocalPlayer = Players.LocalPlayer or nil
 
-local Package = HttpService:JSONDecode(require("../build/package"))
-if Package then
-	WindUI.Version = Package.version
-end
+-- Version is set directly
+WindUI.Version = "1.0.0"
 
-local KeySystem = require("./components/KeySystem")
+local KeySystem = loadModule("components/KeySystem.lua")
 
 local Creator = WindUI.Creator
 
@@ -48,7 +59,7 @@ local New = Creator.New
 --local Tween = Creator.Tween
 --local ServicesModule = WindUI.Services
 
-local Acrylic = require("./utils/Acrylic/Init")
+local Acrylic = loadModule("utils/Acrylic/Init.lua")
 
 local ProtectGui = protectgui or (syn and syn.protect_gui) or function() end
 
@@ -250,10 +261,10 @@ end
 
 function WindUI:Popup(PopupConfig)
 	PopupConfig.WindUI = WindUI
-	return require("./components/popup/Init").new(PopupConfig, WindUI.ScreenGui.Popups)
+	return loadModule("components/popup/Init.lua").new(PopupConfig, WindUI.ScreenGui.Popups)
 end
 
-WindUI.Themes = require("./themes/Init")(WindUI, Creator)
+WindUI.Themes = loadModule("themes/Init.lua")(WindUI, Creator)
 
 Creator.Themes = WindUI.Themes
 
@@ -261,7 +272,7 @@ WindUI:SetTheme("Dark")
 WindUI:SetLanguage(Creator.Language)
 
 function WindUI:CreateWindow(Config)
-	local CreateWindow = require("./components/window/Init")
+	local CreateWindow = loadModule("components/window/Init.lua")
 
 	if not RunService:IsStudio() and writefile then
 		if not isfolder("WindUI") then
