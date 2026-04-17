@@ -10,10 +10,16 @@ local function resolvePath(currentPath, relativePath)
 		dir = ""
 	end
 	
-	-- Handle ../ (go up one directory)
+	-- Handle ../ (go up one directory) - can be multiple levels
+	local upLevels = 0
 	while relativePath:match("^%.%./") do
 		relativePath = relativePath:sub(4) -- Remove ../
-		dir = dir:match("(.*/)[^/]+/$") or "" -- Go up one directory
+		upLevels = upLevels + 1
+	end
+	
+	-- Go up the required number of directories
+	for i = 1, upLevels do
+		dir = dir:match("(.*/)[^/]+/$") or ""
 	end
 	
 	-- Handle ./ (current directory)
